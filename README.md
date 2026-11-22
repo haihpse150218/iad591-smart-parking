@@ -27,6 +27,8 @@ Bãi đỗ xe 4 chỗ: Arduino Uno đếm xe bằng cảm biến siêu âm, mở
 
 ## Sơ đồ chân Arduino Uno
 
+📌 Bảng đầy đủ (Arduino + Pi + sơ đồ chia áp + checklist): [docs/PINOUT.md](docs/PINOUT.md)
+
 | Linh kiện | Chân linh kiện | Arduino |
 |---|---|---|
 | HC-SR04 cổng **vào** | VCC / GND / Trig / Echo | 5V / GND / **D7** / **D6** |
