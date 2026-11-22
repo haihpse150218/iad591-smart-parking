@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Parking · IAD591</title>
+<script src="{{ url_for('static', filename='chart.umd.min.js') }}"></script>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a2129; --line: #2a333d; --text: #e6edf3; --muted: #8b98a5;
+    --green: #2ea043; --red: #da3633; --amber: #d29922; --blue: #388bfd;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+           padding: 14px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; }
+  header small { color: var(--muted); }
+  .pill { padding: 4px 10px; border-radius: 99px; font-size: 13px; font-weight: 600; background: var(--line); }
+  .pill.ok { background: rgba(46,160,67,.2); color: #56d364; }
+  .pill.bt { background: rgba(56,139,253,.2); color: #79c0ff; }
+  .pill.bad { background: rgba(218,54,51,.2); color: #ff7b72; }
+  main { max-width: 1200px; margin: 0 auto; padding: 18px 16px 40px; display: grid; gap: 16px;
+         grid-template-columns: repeat(12, 1fr); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .span3 { grid-column: span 3; } .span4 { grid-column: span 4; } .span6 { grid-column: span 6; }
+  .span8 { grid-column: span 8; } .span12 { grid-column: span 12; }
+  @media (max-width: 900px) { .span3, .span4, .span6, .span8 { grid-column: span 12; } }
+  .big { font-size: 48px; font-weight: 700; line-height: 1; }
+  .big small { font-size: 20px; color: var(--muted); font-weight: 500; }
+  .slots { display: flex; gap: 8px; margin-top: 14px; }
+  .slot { flex: 1; height: 54px; border-radius: 8px; display: grid; place-items: center; font-size: 22px;
+          border: 2px dashed var(--line); transition: .3s; }
+  .slot.busy { background: rgba(218,54,51,.18); border: 2px solid var(--red); }
+  .slot.free { background: rgba(46,160,67,.12); border: 2px solid var(--green); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+  .kv b { text-align: right; }
+  .state { font-size: 26px; font-weight: 700; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { background: var(--line); color: var(--text); border: 1px solid #3a4550; border-radius: 8px;
+           padding: 9px 14px; font-size: 14px; cursor: pointer; font-weight: 600; }
+  button:hover { border-color: var(--blue); }
+  button.primary { background: var(--blue); border-color: var(--blue); }
+  button.danger { background: var(--red); border-color: var(--red); }
+  button.on { outline: 2px solid var(--amber); }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .row span { color: var(--muted); min-width: 80px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td, th { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 500; }
+  .tag { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--line); }
+  .tag.car_in { background: rgba(46,160,67,.25); } .tag.car_out { background: rgba(56,139,253,.25); }
+  .tag.full { background: rgba(218,54,51,.3); } .tag.link_switch { background: rgba(210,153,34,.3); }
+  .chart-box { position: relative; height: 280px; }
+  .muted { color: var(--muted); }
+  a { color: #79c0ff; }
+  #toast { position: fixed; bottom: 18px; right: 18px; background: var(--panel); border: 1px solid var(--blue);
+           padding: 10px 14px; border-radius: 8px; opacity: 0; transition: .3s; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🅿️ Smart Parking</h1>
+    <small>IAD591 · Arduino Uno → Bluetooth/Serial → Raspberry Pi → Flask + SQLite</small>
+  </div>
+  <div class="btns">
+    <span id="link" class="pill">…</span>
+    <span id="mode" class="pill">…</span>
+    <span id="clock" class="pill"></span>
+  </div>
+</header>
+
+<main>
+  <section class="card span4">
+    <h2>Chỗ trống</h2>
+    <div class="big" id="free">–<small>/–</small></div>
+    <div class="slots" id="slots"></div>
+    <p class="muted" id="fullMsg" style="margin:10px 0 0"></p>
+  </section>
+
+  <section class="card span4">
+    <h2>Trạng thái</h2>
+    <div class="kv">
+      <span>Barrier</span><b id="gate">–</b>
+      <span>Đèn bãi</span><b id="light">–</b>
+      <span>Ánh sáng (LDR)</span><b id="ldr">–</b>
+      <span>Cảm biến vào</span><b id="d1">–</b>
+      <span>Cảm biến ra</span><b id="d2">–</b>
+    </div>
+  </section>
+
+  <section class="card span4">
+    <h2>Hôm nay</h2>
+    <div class="kv">
+      <span>Xe vào</span><b id="tIn">0</b>
+      <span>Xe ra</span><b id="tOut">0</b>
+      <span>Lần báo đầy</span><b id="tFull">0</b>
+      <span>Đổi kênh</span><b id="tLink">0</b>
+    </div>
+    <p style="margin:12px 0 0"><a href="/export.csv">⬇ Tải CSV toàn bộ dữ liệu</a></p>
+  </section>
+
+  <section class="card span6">
+    <h2>Điều khiển</h2>
+    <div class="row"><span>Barrier</span>
+      <button class="primary" onclick="cmd('GATE:OPEN')">Mở cổng</button>
+      <button onclick="cmd('GATE:CLOSE')">Đóng cổng</button></div>
+    <div class="row"><span>Đèn bãi</span>
+      <button onclick="cmd('LIGHT:ON')">Bật</button>
+      <button onclick="cmd('LIGHT:OFF')">Tắt</button>
+      <button onclick="cmd('LIGHT:AUTO')">Tự động (LDR)</button></div>
+    <div class="row"><span>Chế độ</span>
+      <button id="bAuto" onclick="cmd('MODE:AUTO')">AUTO</button>
+      <button id="bMan" onclick="cmd('MODE:MANUAL')">MANUAL</button></div>
+    <div class="row"><span>Số xe</span>
+      <button onclick="setCars(-1)">− 1</button>
+      <button onclick="setCars(+1)">+ 1</button>
+      <button onclick="cmd('CARS:0')">Reset 0</button>
+      <button class="danger" onclick="cmd('BUZZ')">🔔 Còi</button></div>
+    <div class="row"><span>Kênh</span>
+      <button onclick="cmd('LINK:BT')">Bluetooth</button>
+      <button onclick="cmd('LINK:SERIAL')">USB Serial</button></div>
+  </section>
+
+  <section class="card span6">
+    <h2>Sự kiện gần nhất</h2>
+    <table><thead><tr><th>Giờ</th><th>Sự kiện</th><th>Số xe</th></tr></thead>
+      <tbody id="events"></tbody></table>
+  </section>
+
+  <section class="card span12">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">Lịch sử</h2>
+      <div class="btns">
+        <button onclick="setRange(5)">5 phút</button>
+        <button onclick="setRange(30)">30 phút</button>
+        <button onclick="setRange(180)">3 giờ</button>
+      </div>
+    </div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const EV = { car_in: "🚗 Xe vào", car_out: "🚙 Xe ra", full: "⛔ Bãi đầy", car_wait: "⏳ Xe chờ (MANUAL)",
+  gate_manual_open: "🔓 Mở cổng tay", gate_manual_close: "🔒 Đóng cổng tay", link_switch: "🔁 Đổi kênh",
+  boot: "⚡ Arduino khởi động", cars_set: "✏️ Đặt số xe", bad_cmd: "❓ Lệnh sai" };
+let last = {}, range = 30;
+
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 1800); }
+
+async function cmd(c) {
+  const r = await fetch("/api/cmd", { method: "POST", headers: { "Content-Type": "application/json" },
+                                     body: JSON.stringify({ cmd: c }) });
+  toast(r.ok ? "Đã gửi " + c : "Lỗi gửi " + c);
+  setTimeout(poll, 300);
+}
+function setCars(d) { const n = Math.max(0, Math.min(last.cap || 4, (last.cars || 0) + d)); cmd("CARS:" + n); }
+
+async function poll() {
+  try {
+    const s = await (await fetch("/api/latest")).json();
+    last = s;
+    const cap = s.cap ?? 4, cars = s.cars ?? 0, free = cap - cars;
+    $("free").innerHTML = (s.cap === undefined ? "–" : free) + "<small>/" + cap + "</small>";
+    $("free").style.color = free === 0 ? "var(--red)" : free === 1 ? "var(--amber)" : "var(--green)";
+    $("slots").innerHTML = Array.from({ length: cap }, (_, i) =>
+      `<div class="slot ${i < cars ? "busy" : "free"}">${i < cars ? "🚗" : "P"}</div>`).join("");
+    $("fullMsg").textContent = free === 0 ? "Bãi đã đầy – barrier không mở cho xe vào." : "";
+    $("gate").textContent = s.gate ? "🔓 MỞ" : "🔒 ĐÓNG";
+    $("light").textContent = s.light ? "💡 BẬT" : "TẮT";
+    $("ldr").textContent = s.ldr === undefined ? "–" : s.ldr + (s.ldr < 300 ? " (tối)" : " (sáng)");
+    $("d1").textContent = fmtCm(s.d1);
+    $("d2").textContent = s.d2 === -1 ? "không lắp" : fmtCm(s.d2);
+    const l = $("link");
+    l.textContent = s.online ? (s.link === "bt" ? "Bluetooth" : s.link === "sim" ? "Giả lập" : "USB Serial") : "Mất kết nối";
+    l.className = "pill " + (!s.online ? "bad" : s.link === "bt" ? "bt" : "ok");
+    $("mode").textContent = s.mode || "–";
+    $("bAuto").classList.toggle("on", s.mode === "AUTO");
+    $("bMan").classList.toggle("on", s.mode === "MANUAL");
+  } catch (e) { $("link").textContent = "Mất kết nối Pi"; $("link").className = "pill bad"; }
+  $("clock").textContent = new Date().toLocaleTimeString("vi-VN");
+}
+const fmtCm = v => v === undefined ? "–" : v >= 400 ? "> 4 m" : v + " cm" + (v < 10 ? " · có xe" : "");
+
+async function pollEvents() {
+  const d = await (await fetch("/api/events")).json();
+  $("events").innerHTML = d.events.slice(0, 10).map(e =>
+    `<tr><td>${e.ts.slice(11)}</td><td><span class="tag ${e.type}">${EV[e.type] || e.type}</span></td><td>${e.detail}</td></tr>`).join("");
+  const t = d.today;
+  $("tIn").textContent = t.car_in || 0; $("tOut").textContent = t.car_out || 0;
+  $("tFull").textContent = t.full || 0; $("tLink").textContent = t.link_switch || 0;
+}
+
+const chart = new Chart($("chart"), {
+  type: "line",
+  data: { labels: [], datasets: [
+    { label: "Số xe trong bãi", data: [], borderColor: "#f78166", backgroundColor: "rgba(247,129,102,.15)",
+      stepped: true, fill: true, yAxisID: "y", pointRadius: 0 },
+    { label: "Ánh sáng LDR", data: [], borderColor: "#d29922", yAxisID: "y1", pointRadius: 0, tension: .3 } ] },
+  options: { animation: false, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+    plugins: { legend: { labels: { color: "#e6edf3" } } },
+    scales: {
+      x: { ticks: { color: "#8b98a5", maxTicksLimit: 10 }, grid: { color: "#2a333d" } },
+      y: { position: "left", min: 0, suggestedMax: 4, ticks: { color: "#f78166", stepSize: 1 }, grid: { color: "#2a333d" },
+           title: { display: true, text: "xe", color: "#f78166" } },
+      y1: { position: "right", min: 0, max: 1023, ticks: { color: "#d29922" }, grid: { display: false },
+            title: { display: true, text: "LDR (0–1023)", color: "#d29922" } } } }
+});
+function setRange(m) { range = m; pollHistory(); }
+async function pollHistory() {
+  const rows = await (await fetch("/api/history?min=" + range)).json();
+  chart.data.labels = rows.map(r => r.ts.slice(11));
+  chart.data.datasets[0].data = rows.map(r => r.cars);
+  chart.data.datasets[1].data = rows.map(r => r.ldr);
+  chart.update();
+}
+
+poll(); pollEvents(); pollHistory();
+setInterval(poll, 1000); setInterval(pollEvents, 2000); setInterval(pollHistory, 5000);
+</script>
+</body>
+</html>
