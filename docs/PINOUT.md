@@ -18,11 +18,11 @@ Khớp với hằng số trong `arduino/smart_parking/smart_parking.ino` và `pi
 | **D6** | HC-SR04 cổng **vào** | Echo | |
 | **D7** | HC-SR04 cổng **vào** | Trig | |
 | **D8** | Buzzer | + | |
-| **D9** | Servo | dây **cam** (tín hiệu) | barrier |
+| D9 | — | — | trống (servo đã chuyển sang D13) |
 | **D10** | HC-05 | **TXD** | cắm thẳng (SoftwareSerial RX) |
 | **D11** | HC-05 | **RXD**, đi **qua mạch chia áp** | bắt buộc chia áp (SoftwareSerial TX) |
 | **D12** | LED đèn bãi | chân dài (+), qua điện trở 220Ω | bật khi trời tối |
-| D13 | — | — | trống (LED "L" có sẵn trên board) |
+| **D13** | Servo | dây **cam** (tín hiệu) | barrier; LED "L" trên board nháy mờ khi servo nhận xung |
 
 ## 2. Arduino Uno: hàng ANALOG IN
 
@@ -49,9 +49,9 @@ Breadboard dài thường có hàng nguồn **đứt ở giữa**. Nối thêm h
 
 ```
               ┌─ DIGITAL ─────────────────────────────────────────────────────┐
-              │ D13 D12  D11   D10   D9    D8   D7   D6   D5   D4   D3   D2  D1 D0
-              │  ·  đèn  HC05  HC05  servo còi  Trig Echo Trig Echo đỏ   xanh ✗  ✗
-              │     bãi  RXD*  TXD              ─ vào ─   ─ ra ─
+              │ D13   D12  D11   D10   D9  D8   D7   D6   D5   D4   D3   D2  D1 D0
+              │ servo đèn  HC05  HC05  ·   còi  Trig Echo Trig Echo đỏ   xanh ✗  ✗
+              │       bãi  RXD*  TXD            ─ vào ─   ─ ra ─
      USB ▓▓   │
               │  POWER                     ANALOG IN
               │  3V3  5V   GND GND VIN    A0   A1 A2 A3  A4   A5
@@ -124,7 +124,7 @@ Dx ── 220Ω (đỏ-đỏ-nâu) ── chân DÀI LED (+)   chân NGẮN LED 
 |---|---|
 | Nâu | GND |
 | Đỏ | 5V |
-| Cam | **D9** |
+| Cam | **D13** |
 
 Nếu Arduino tự reset mỗi khi servo quay: cấp 5V cho servo từ nguồn riêng và **nối chung GND** với Arduino.
 
@@ -180,5 +180,5 @@ Bật I2C: `sudo raspi-config` → Interface Options → I2C → Enable. Kiểm 
 - [ ] RXD của HC-05 đi **qua mạch chia áp**, không nối thẳng D11
 - [ ] LED: chân dài cắm phía điện trở, chân ngắn cắm GND
 - [ ] LDR có điện trở 10k xuống GND (thiếu điện trở này thì A0 nhảy số lung tung)
-- [ ] Servo: nâu GND, đỏ 5V, cam D9
+- [ ] Servo: nâu GND, đỏ 5V, cam D13
 - [ ] Không có chỗ nào chập giữa 5V và GND (đo thử bằng đồng hồ nếu có)

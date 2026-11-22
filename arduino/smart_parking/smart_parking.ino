@@ -18,7 +18,7 @@
 const byte TRIG_IN = 7,  ECHO_IN = 6;    // HC-SR04 cong vao
 const byte TRIG_OUT = 5, ECHO_OUT = 4;   // HC-SR04 cong ra (USE_EXIT_SENSOR)
 const byte LDR_PIN = A0;                 // LDR len 5V, 10k xuong GND -> sang = so lon
-const byte SERVO_PIN = 9;
+const byte SERVO_PIN = 13;               // servo o D13 (D9 doi sang 13); den L tren board nhay mo khi servo nhan xung
 const byte LED_GREEN = 2, LED_RED = 3, LED_LIGHT = 12;
 const byte BUZZER = 8;
 const byte BT_RX = 10, BT_TX = 11;       // D10 <- TXD HC-05 ; D11 -> chia ap 1k/2k -> RXD HC-05
@@ -56,7 +56,7 @@ unsigned long gateOpenedAt = 0;
 unsigned long servoOffAt = 0;   // thoi diem ngat xung servo (0 = dang ngat)
 int servoAngle = -1;            // goc dang dat cho servo (log)
 long vminMove = 0;              // Vcc thap nhat (mV) trong luc servo quay
-unsigned long pulseUs = 0;      // do rong xung do duoc tren D9 (us)
+unsigned long pulseUs = 0;      // do rong xung do duoc tren chan servo (us)
 const unsigned long SERVO_MOVE_MS = 700;
 String bufUsb, bufBt;
 
@@ -105,12 +105,12 @@ void setGate(bool open) {
     gate.write(servoAngle);
     servoOffAt = millis() + SERVO_MOVE_MS;
     if (servoOffAt == 0) servoOffAt = 1;
-    // Do xung THUC TE tren chan D9 (doc lai chinh chan output). 0 = D9 khong phat xung.
+    // Do xung THUC TE tren chan servo (doc lai chinh chan output). 0 = khong phat xung.
     // Xung dau tien sau attach co the cham -> thu toi da 3 chu ky (20 ms/chu ky)
     pulseUs = 0;
     for (byte i = 0; i < 3 && pulseUs == 0; i++) pulseUs = pulseIn(SERVO_PIN, HIGH, 25000UL);
     vminMove = readVcc();
-    // LOG servo: goc, xung lenh (us), xung do duoc tren D9 (pw), Vcc luc bat dau (mV)
+    // LOG servo: goc, xung lenh (us), xung do duoc tren chan servo (pw), Vcc luc bat dau (mV)
     out(String("{\"ev\":\"servo\",\"ang\":") + servoAngle +
         ",\"us\":" + gate.readMicroseconds() + ",\"pw\":" + pulseUs +
         ",\"vcc\":" + vminMove + ",\"pin\":" + SERVO_PIN + "}");

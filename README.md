@@ -34,7 +34,7 @@ Bãi đỗ xe 4 chỗ: Arduino Uno đếm xe bằng cảm biến siêu âm, mở
 | HC-SR04 cổng **vào** | VCC / GND / Trig / Echo | 5V / GND / **D7** / **D6** |
 | HC-SR04 cổng **ra** | VCC / GND / Trig / Echo | 5V / GND / **D5** / **D4** |
 | LDR | một đầu → 5V, đầu kia → **A0** và điện trở **10k** xuống GND | A0 |
-| Servo (barrier) | nâu GND · đỏ 5V · cam tín hiệu | **D9** |
+| Servo (barrier) | nâu GND · đỏ 5V · cam tín hiệu | **D13** (đèn L trên board nháy mờ khi servo nhận xung, bình thường) |
 | LCD1602 I2C | SDA / SCL / VCC / GND | **A4** / **A5** / 5V / GND |
 | LED xanh (còn chỗ) | anode qua 220Ω | **D2** |
 | LED đỏ (hết chỗ) | anode qua 220Ω | **D3** |
