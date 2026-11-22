@@ -89,6 +89,7 @@
       <span>Ánh sáng (LDR)</span><b id="ldr">–</b>
       <span>Cảm biến vào</span><b id="d1">–</b>
       <span>Cảm biến ra</span><b id="d2">–</b>
+      <span>Nguồn Arduino</span><b id="vcc">–</b>
     </div>
   </section>
 
@@ -177,6 +178,7 @@ async function poll() {
     $("light").textContent = s.light ? "💡 BẬT" : "TẮT";
     $("ldr").textContent = s.ldr === undefined ? "–" : s.ldr + (s.ldr < 600 ? " (tối)" : " (sáng)");
     $("d1").textContent = fmtCm(s.d1);
+    $("vcc").textContent = s.vcc ? (s.vcc / 1000).toFixed(2) + " V" + (s.vcc < 4500 ? " ⚠️ yếu" : "") : "–";
     $("d2").textContent = s.d2 === -1 ? "không lắp" : fmtCm(s.d2);
     const l = $("link");
     l.textContent = s.online ? (s.link === "bt" ? "Bluetooth" : s.link === "sim" ? "Giả lập" : "USB Serial") : "Mất kết nối";

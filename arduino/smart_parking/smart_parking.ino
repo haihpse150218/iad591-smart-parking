@@ -55,6 +55,8 @@ unsigned long gateCloseAt = 0, lastReport = 0, lastLcd = 0;
 unsigned long gateOpenedAt = 0;
 unsigned long servoOffAt = 0;   // thoi diem ngat xung servo (0 = dang ngat)
 int servoAngle = -1;            // goc dang dat cho servo (log)
+long vminMove = 0;              // Vcc thap nhat (mV) trong luc servo quay
+unsigned long pulseUs = 0;      // do rong xung do duoc tren D9 (us)
 const unsigned long SERVO_MOVE_MS = 700;
 String bufUsb, bufBt;
 
@@ -80,6 +82,18 @@ void sendEvent(const char *ev) {
 
 void beep(int ms) { tone(BUZZER, 2000, ms); }
 
+// Do dien ap nguon 5V cua Arduino (mV) bang dien ap chuan noi 1.1V - khong can day them.
+// Neu servo lay nguon tu hang + cua Arduino, Vcc tut khi servo quay = nguon yeu.
+long readVcc() {
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  delay(2);
+  ADCSRA |= _BV(ADSC);
+  while (bit_is_set(ADCSRA, ADSC));
+  long r = ADCL;
+  r |= ADCH << 8;
+  return r ? 1125300L / r : 0;   // 1.1V * 1023 * 1000
+}
+
 // Servo chi duoc cap xung khi dang quay (SERVO_MOVE_MS), sau do detach.
 // Ly do: SoftwareSerial (HC-05) tat ngat moi lan gui -> xung servo bi meo -> servo giat moi giay.
 void setGate(bool open) {
@@ -91,9 +105,13 @@ void setGate(bool open) {
     gate.write(servoAngle);
     servoOffAt = millis() + SERVO_MOVE_MS;
     if (servoOffAt == 0) servoOffAt = 1;
-    // LOG servo: goc + do rong xung thuc te (544..2400 us)
+    // Do xung THUC TE tren chan D9 (doc lai chinh chan output). 0 = D9 khong phat xung.
+    pulseUs = pulseIn(SERVO_PIN, HIGH, 30000UL);
+    vminMove = readVcc();
+    // LOG servo: goc, xung lenh (us), xung do duoc tren D9 (pw), Vcc luc bat dau (mV)
     out(String("{\"ev\":\"servo\",\"ang\":") + servoAngle +
-        ",\"us\":" + gate.readMicroseconds() + ",\"pin\":" + SERVO_PIN + "}");
+        ",\"us\":" + gate.readMicroseconds() + ",\"pw\":" + pulseUs +
+        ",\"vcc\":" + vminMove + ",\"pin\":" + SERVO_PIN + "}");
   }
   if (open) {
     if (changed) gateOpenedAt = millis();
@@ -102,10 +120,16 @@ void setGate(bool open) {
 }
 
 void servoIdle() {
-  if (servoOffAt && (long)(millis() - servoOffAt) >= 0) {
+  if (!servoOffAt) return;
+  long v = readVcc();                       // theo doi Vcc trong luc servo dang quay
+  if (v && v < vminMove) vminMove = v;
+  if ((long)(millis() - servoOffAt) >= 0) {
     gate.detach();
     servoOffAt = 0;
-    out(String("{\"ev\":\"servo_off\",\"ang\":") + servoAngle + "}");
+    // vmin < 4500 mV: nguon yeu khi servo quay; ok = 1 neu du dien
+    out(String("{\"ev\":\"servo_off\",\"ang\":") + servoAngle +
+        ",\"pw\":" + pulseUs + ",\"vmin\":" + vminMove +
+        ",\"ok\":" + ((pulseUs > 400 && vminMove >= 4500) ? 1 : 0) + "}");
   }
 }
 
@@ -119,6 +143,7 @@ void report() {
   s += ",\"gate\":"; s += gateOpen ? 1 : 0;
   s += ",\"ang\":"; s += servoAngle;
   s += ",\"sp\":"; s += gate.attached() ? 1 : 0;
+  s += ",\"vcc\":"; s += readVcc();
   s += ",\"light\":"; s += lightOn ? 1 : 0;
   s += ",\"mode\":\""; s += autoMode ? "AUTO" : "MANUAL";
   s += "\"}";
