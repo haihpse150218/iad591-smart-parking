@@ -28,6 +28,8 @@ const byte BT_RX = 10, BT_TX = 11;       // D10 <- TXD HC-05 ; D11 -> chia ap 1k
 const int  CAPACITY = 4;      // so cho trong bai
 const int  CAR_CM = 10;       // < 10 cm = co xe
 const int  CLEAR_CM = 15;     // > 15 cm = xe da di (tre de chong nhieu)
+const byte ON_COUNT = 3;      // 3 lan doc lien tiep < CAR_CM moi tinh la CO xe
+const byte OFF_COUNT = 6;     // 6 lan doc lien tiep > CLEAR_CM (~0.5 s) moi tinh la xe DA DI
 const int  DARK_LDR = 300;    // LDR < 300 = troi toi -> bat den bai
 const int  GATE_OPEN_DEG = 90, GATE_CLOSED_DEG = 0;
 const unsigned long GATE_HOLD_MS = 3000;
@@ -45,6 +47,7 @@ bool lightOn = false;
 bool lightManual = false;     // MANUAL: den theo lenh
 int distIn = -1, distOut = -1, ldr = 0;
 bool carAtIn = false, carAtOut = false;
+byte cntIn = 0, cntOut = 0;   // dem so lan doc lien tiep muon doi trang thai
 unsigned long gateCloseAt = 0, lastReport = 0, lastLcd = 0;
 String bufUsb, bufBt;
 
@@ -131,9 +134,18 @@ void pollPort(Stream &port, String &buf) {
 }
 
 // ------------------- LOGIC CUC BO -------------------
+// Chong nhieu HC-SR04: chi doi trang thai khi nhieu lan doc lien tiep cung y.
+// Mot lan doc loi (vd 6 cm -> 400 -> 6 cm) khong lam dem trung xe.
+bool updatePresence(int d, bool present, byte &cnt) {
+  bool wantFlip = present ? (d > CLEAR_CM) : (d < CAR_CM);
+  if (!wantFlip) { cnt = 0; return present; }
+  if (++cnt >= (present ? OFF_COUNT : ON_COUNT)) { cnt = 0; return !present; }
+  return present;
+}
+
 void parkingLogic() {
   // Xe vao: phat hien canh len (khong co -> co)
-  bool nowIn = distIn < CAR_CM ? true : (distIn > CLEAR_CM ? false : carAtIn);
+  bool nowIn = updatePresence(distIn, carAtIn, cntIn);
   if (nowIn && !carAtIn) {
     if (cars < CAPACITY) {
       if (autoMode) { setGate(true); cars++; sendEvent("car_in"); beep(80); }
@@ -145,7 +157,7 @@ void parkingLogic() {
   carAtIn = nowIn;
 
 #if USE_EXIT_SENSOR
-  bool nowOut = distOut < CAR_CM ? true : (distOut > CLEAR_CM ? false : carAtOut);
+  bool nowOut = updatePresence(distOut, carAtOut, cntOut);
   if (nowOut && !carAtOut && cars > 0) {
     cars--; sendEvent("car_out");
     if (autoMode) setGate(true);
