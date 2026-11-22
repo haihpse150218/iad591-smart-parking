@@ -58,7 +58,9 @@ unsigned long servoOffAt = 0;   // thoi diem ngat xung servo (0 = dang ngat)
 int servoAngle = -1;            // goc dang dat cho servo (log)
 long vminMove = 0;              // Vcc thap nhat (mV) trong luc servo quay
 unsigned long pulseUs = 0;      // do rong xung do duoc tren chan servo (us)
-const unsigned long SERVO_MOVE_MS = 700;
+const unsigned long SERVO_MOVE_MS = 300;   // giu xung them 0.3 s sau khi quay cham xong roi detach
+const int  SERVO_STEP_DEG = 3;             // quay cham: 3 do / 15 ms -> 90 do mat ~0.45 s
+const unsigned long SERVO_STEP_MS = 15;
 String bufUsb, bufBt;
 unsigned long btRxBytes = 0;     // dem byte nhan qua HC-05 (chan doan)
 
@@ -102,8 +104,18 @@ void setGate(bool open) {
   bool changed = (open != gateOpen) || !gate.attached();
   gateOpen = open;
   if (changed) {
+    int target = open ? GATE_OPEN_DEG : GATE_CLOSED_DEG;
+    int from = (servoAngle < 0) ? target : servoAngle;   // luc boot chua biet goc -> dat thang
+    gate.write(from);                       // dat goc hien tai TRUOC khi attach -> khong giat
     gate.attach(SERVO_PIN);
-    servoAngle = open ? GATE_OPEN_DEG : GATE_CLOSED_DEG;
+    // Quay CHAM tung buoc: dong khoi dong cua servo nho hon nhieu -> nguon 5V khong tut
+    // -> HC-05 khong bi reset / rot ket noi moi lan cong mo (lab: khong co tu loc nguon).
+    int step = (target > from) ? SERVO_STEP_DEG : -SERVO_STEP_DEG;
+    for (int a = from; (step > 0) ? (a < target) : (a > target); a += step) {
+      gate.write(a);
+      delay(SERVO_STEP_MS);
+    }
+    servoAngle = target;
     gate.write(servoAngle);
     servoOffAt = millis() + SERVO_MOVE_MS;
     if (servoOffAt == 0) servoOffAt = 1;
