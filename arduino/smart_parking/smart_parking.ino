@@ -60,6 +60,7 @@ long vminMove = 0;              // Vcc thap nhat (mV) trong luc servo quay
 unsigned long pulseUs = 0;      // do rong xung do duoc tren chan servo (us)
 const unsigned long SERVO_MOVE_MS = 700;
 String bufUsb, bufBt;
+unsigned long btRxBytes = 0;     // dem byte nhan qua HC-05 (chan doan)
 
 // ------------------- HAM TIEN ICH -------------------
 int readCm(byte trig, byte echo) {
@@ -148,6 +149,7 @@ void report() {
   s += ",\"sp\":"; s += gate.attached() ? 1 : 0;
   s += ",\"vcc\":"; s += readVcc();
   s += ",\"light\":"; s += lightOn ? 1 : 0;
+  s += ",\"brx\":"; s += btRxBytes;     // so byte nhan tren D10 (HC-05 TXD) - chan doan
   s += ",\"mode\":\""; s += autoMode ? "AUTO" : "MANUAL";
   s += "\"}";
   out(s);
@@ -181,13 +183,24 @@ void handleCmd(String c) {
   else if (c.startsWith("CARS:")) { cars = constrain(c.substring(5).toInt(), 0, CAPACITY); sendEvent("cars_set"); }
   else if (c == "BUZZ")        { beep(300); }
   else if (c == "PING")        { out("{\"ev\":\"pong\"}"); return; }
-  else { out("{\"ev\":\"bad_cmd\"}"); return; }
+  else {                                   // in kem lenh tho (hex) de chan doan loi truyen
+    String s = "{\"ev\":\"bad_cmd\",\"raw\":\"";
+    for (unsigned int i = 0; i < c.length(); i++) {
+      byte b = (byte)c[i];
+      if (b < 16) s += '0';
+      s += String(b, HEX);
+    }
+    s += "\"}";
+    out(s);
+    return;
+  }
   report();   // phan hoi ngay trang thai moi
 }
 
 void pollPort(Stream &port, String &buf) {
   while (port.available()) {
     char ch = port.read();
+    if (&port == &bt) btRxBytes++;
     if (ch == '\n' || ch == '\r') { if (buf.length()) handleCmd(buf); buf = ""; }
     else if (buf.length() < 32) buf += ch;
   }
