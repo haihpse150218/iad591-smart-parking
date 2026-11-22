@@ -50,6 +50,8 @@ int distIn = -1, distOut = -1, ldr = 0;
 bool carAtIn = false, carAtOut = false;
 byte cntIn = 0, cntOut = 0;   // dem so lan doc lien tiep muon doi trang thai
 unsigned long gateCloseAt = 0, lastReport = 0, lastLcd = 0;
+unsigned long servoOffAt = 0;   // thoi diem ngat xung servo (0 = dang ngat)
+const unsigned long SERVO_MOVE_MS = 700;
 String bufUsb, bufBt;
 
 // ------------------- HAM TIEN ICH -------------------
@@ -74,10 +76,25 @@ void sendEvent(const char *ev) {
 
 void beep(int ms) { tone(BUZZER, 2000, ms); }
 
+// Servo chi duoc cap xung khi dang quay (SERVO_MOVE_MS), sau do detach.
+// Ly do: SoftwareSerial (HC-05) tat ngat moi lan gui -> xung servo bi meo -> servo giat moi giay.
 void setGate(bool open) {
+  bool changed = (open != gateOpen) || !gate.attached();
   gateOpen = open;
-  gate.write(open ? GATE_OPEN_DEG : GATE_CLOSED_DEG);
+  if (changed) {
+    gate.attach(SERVO_PIN);
+    gate.write(open ? GATE_OPEN_DEG : GATE_CLOSED_DEG);
+    servoOffAt = millis() + SERVO_MOVE_MS;
+    if (servoOffAt == 0) servoOffAt = 1;
+  }
   if (open) gateCloseAt = millis() + GATE_HOLD_MS;
+}
+
+void servoIdle() {
+  if (servoOffAt && (long)(millis() - servoOffAt) >= 0) {
+    gate.detach();
+    servoOffAt = 0;
+  }
 }
 
 void report() {
@@ -188,8 +205,7 @@ void setup() {
   pinMode(TRIG_OUT, OUTPUT); pinMode(ECHO_OUT, INPUT);
   pinMode(LED_GREEN, OUTPUT); pinMode(LED_RED, OUTPUT); pinMode(LED_LIGHT, OUTPUT);
   pinMode(BUZZER, OUTPUT);
-  gate.attach(SERVO_PIN);
-  setGate(false);
+  setGate(false);              // attach + ve 0 do, 0.7 s sau tu detach
   lcd.init(); lcd.backlight();
   lcd.print("Smart Parking");
   lcd.setCursor(0, 1); lcd.print("IAD591 starting");
@@ -209,6 +225,7 @@ void loop() {
 #endif
   ldr = analogRead(LDR_PIN);
   parkingLogic();
+  servoIdle();
 
   if (millis() - lastLcd >= 300) { lastLcd = millis(); drawLcd(); }
   if (millis() - lastReport >= REPORT_MS) { lastReport = millis(); report(); }
