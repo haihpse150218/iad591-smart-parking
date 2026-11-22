@@ -14,13 +14,14 @@
  *   d        detach (tat xung D9 -> servo phai dung yen)
  *   p        do xung thuc te tren D9
  *   v        do dien ap nguon 5V cua Arduino
+ *   pin13    doi chan servo sang D13 (vd pin13, pin12, pin15 = A1) - doi day CAM theo
  *   h        in lai huong dan
  *
  * Moi lenh in log: goc, xung lenh (us), xung do duoc (pw), Vcc (mV).
  */
 #include <Servo.h>
 
-const byte SERVO_PIN = 9;
+byte SERVO_PIN = 9;   // doi bang lenh pinN
 const int OPEN_DEG = 100, CLOSED_DEG = 10;
 
 Servo sv;
@@ -48,7 +49,7 @@ void status(const char *what) {
   // theo doi Vcc thap nhat trong 600 ms servo dang quay
   unsigned long t = millis();
   while (millis() - t < 600) { long v = readVcc(); if (v && v < vmin) vmin = v; }
-  Serial.print(F("[")); Serial.print(what); Serial.print(F("] "));
+  Serial.print(F("[")); Serial.print(what); Serial.print(F("] pin=")); Serial.print(SERVO_PIN); Serial.print(F(" "));
   Serial.print(F("attached=")); Serial.print(sv.attached() ? 1 : 0);
   Serial.print(F(" ang=")); Serial.print(sv.attached() ? sv.read() : -1);
   Serial.print(F(" us=")); Serial.print(sv.attached() ? sv.readMicroseconds() : 0);
@@ -70,12 +71,26 @@ void help() {
   Serial.println(F("=== SERVO TEST (D9) ==="));
   Serial.println(F("0..180 = goc | o = mo 100 | c = dong 10 | s = quet | l = lap 5 lan"));
   Serial.println(F("a = attach | d = detach | p = do xung | v = do Vcc | h = huong dan"));
+  Serial.println(F("pin13 = doi chan servo sang D13 (A1=15, A2=16, A3=17)"));
+  Serial.print(F("Chan servo hien tai: D")); Serial.println(SERVO_PIN);
 }
 
 void handle(String c) {
   c.trim();
   c.toLowerCase();
   if (c.length() == 0) return;
+  if (c.startsWith("pin")) {
+    int np = c.substring(3).toInt();
+    if (np < 2 || np > 17) { Serial.println(F("Chan hop le: 2..13 hoac 14..17 (A0..A3)")); return; }
+    if (sv.attached()) sv.detach();
+    digitalWrite(SERVO_PIN, LOW);
+    SERVO_PIN = np;
+    pinMode(SERVO_PIN, OUTPUT);
+    digitalWrite(SERVO_PIN, LOW);
+    Serial.print(F("Da doi sang chan ")); Serial.print(SERVO_PIN);
+    Serial.println(F(" -> rut day CAM cam sang chan nay roi go c / o"));
+    return;
+  }
   if (isDigit(c[0]))      goTo(c.toInt(), "goc");
   else if (c == "o")      goTo(OPEN_DEG, "mo");
   else if (c == "c")      goTo(CLOSED_DEG, "dong");
