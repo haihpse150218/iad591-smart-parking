@@ -106,7 +106,9 @@ void setGate(bool open) {
     servoOffAt = millis() + SERVO_MOVE_MS;
     if (servoOffAt == 0) servoOffAt = 1;
     // Do xung THUC TE tren chan D9 (doc lai chinh chan output). 0 = D9 khong phat xung.
-    pulseUs = pulseIn(SERVO_PIN, HIGH, 30000UL);
+    // Xung dau tien sau attach co the cham -> thu toi da 3 chu ky (20 ms/chu ky)
+    pulseUs = 0;
+    for (byte i = 0; i < 3 && pulseUs == 0; i++) pulseUs = pulseIn(SERVO_PIN, HIGH, 25000UL);
     vminMove = readVcc();
     // LOG servo: goc, xung lenh (us), xung do duoc tren D9 (pw), Vcc luc bat dau (mV)
     out(String("{\"ev\":\"servo\",\"ang\":") + servoAngle +
