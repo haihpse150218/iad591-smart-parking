@@ -126,7 +126,8 @@ Dx ── 220Ω (đỏ-đỏ-nâu) ── chân DÀI LED (+)   chân NGẮN LED 
 | Đỏ | 5V |
 | Cam | **D11** |
 
-Nếu Arduino tự reset mỗi khi servo quay: cấp 5V cho servo từ nguồn riêng và **nối chung GND** với Arduino.
+**Servo lấy 5V và GND từ chính Arduino** (hàng + / hàng −). Đã thử trong lab: cấp 5V từ chân của Pi thì servo chỉ rè rè, không quay, vì GND của Pi không chung với GND của Arduino nên servo không đọc được xung trên dây cam.
+Nếu bắt buộc dùng nguồn ngoài (Arduino tự reset khi servo quay): **nối GND của nguồn ngoài vào hàng −** trước, rồi mới cấp nguồn.
 
 ### HC-05 (Bluetooth)
 

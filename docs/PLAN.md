@@ -30,6 +30,7 @@ Nguyên tắc: **chạy được trước, đẹp sau**. Mỗi mốc đều ph�
 | HC-05 không ghép được | demo bằng USB Serial (vẫn đạt 7–8), nói rõ trong slide |
 | LCD không hiện | chạy `i2c_scanner`, đổi địa chỉ `0x27` ↔ `0x3F`, vặn biến trở tương phản |
 | Arduino reset khi servo quay | nguồn 5V riêng cho servo, chung GND |
+| Servo rè rè / lắc, không quay | servo đang lấy nguồn từ Pi mà không chung GND → cấp servo từ 5V/GND của Arduino |
 | HC-SR04 đọc lung tung | tăng `CAR_CM`/`CLEAR_CM`, đặt cảm biến thẳng, dùng bìa cứng làm "xe" |
 | LCD trên Pi không hiện | `i2cdetect -y 1`, chạy `--lcd-addr 0x3f`; vặn biến trở; không được thì `--no-lcd` |
 | Thiếu HC-SR04 thứ 2 | `#define USE_EXIT_SENSOR 0`, xe ra bằng nút −1 |
