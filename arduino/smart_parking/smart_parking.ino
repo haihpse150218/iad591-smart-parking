@@ -182,7 +182,7 @@ void handleCmd(String c) {
   else if (c == "MODE:MANUAL") { autoMode = false; }
   else if (c.startsWith("CARS:")) { cars = constrain(c.substring(5).toInt(), 0, CAPACITY); sendEvent("cars_set"); }
   else if (c == "BUZZ")        { beep(300); }
-  else if (c == "PING")        { out("{\"ev\":\"pong\"}"); return; }
+  else if (c == "PING")        { }
   else {                                   // in kem lenh tho (hex) de chan doan loi truyen
     String s = "{\"ev\":\"bad_cmd\",\"raw\":\"";
     for (unsigned int i = 0; i < c.length(); i++) {
@@ -194,6 +194,9 @@ void handleCmd(String c) {
     out(s);
     return;
   }
+  // Xac nhan lenh: Pi chi gui lenh ke tiep khi nhan ack, khong co ack thi gui lai
+  // (SoftwareSerial khong nhan duoc trong luc dang gui -> lenh co the bi mat).
+  out("{\"ev\":\"ack\",\"c\":\"" + c + "\"}");
   report();   // phan hoi ngay trang thai moi
 }
 

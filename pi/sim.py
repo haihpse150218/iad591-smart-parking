@@ -40,8 +40,12 @@ class FakeArduino:
                 self.auto = False
             elif c.startswith("CARS:"):
                 self.cars = max(0, min(CAPACITY, int(c[5:] or 0))); self._ev("cars_set")
-            elif c == "BUZZ":
+            elif c in ("BUZZ", "PING"):
                 pass
+            else:
+                self.out.append(json.dumps({"ev": "bad_cmd", "raw": c.encode().hex()}))
+                continue
+            self.out.append(json.dumps({"ev": "ack", "c": c}))
             self._report()
 
     def readline(self):

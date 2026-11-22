@@ -19,6 +19,8 @@ PORTS = [
 ]
 BAUD = 9600
 SILENCE_S = 5          # khong nhan gi trong 5 s -> coi nhu mat ket noi, thu cong khac
+ACK_TIMEOUT_S = 1.2    # gui lenh ma khong thay {"ev":"ack"} trong 1.2 s -> gui lai
+MAX_TRIES = 3          # SoftwareSerial (HC-05) mat byte khi Arduino dang gui -> can gui lai
 
 
 def parse(line):
@@ -45,6 +47,7 @@ class DeviceLink(threading.Thread):
         self._dev = None
         self._idx = 0               # cong dang dung / cong se thu dau tien
         self._switch = False
+        self._pending = None        # [lenh, so lan da gui, thoi diem gui] - chi 1 lenh tren duong truyen
 
     @staticmethod
     def _open_serial(path):
@@ -95,14 +98,40 @@ class DeviceLink(threading.Thread):
                 return True
         return False
 
+    def _pump_cmds(self):
+        """Gui tung lenh mot, cho ack; het han thi gui lai, qua MAX_TRIES thi bo."""
+        now = time.time()
+        p = self._pending
+        if p is not None and now - p[2] > ACK_TIMEOUT_S:
+            if p[1] >= MAX_TRIES:
+                print(f"[link] no ack for {p[0]} after {p[1]} tries", flush=True)
+                db.add_event("cmd_fail", p[0])
+                self._pending = p = None
+            else:
+                self._write(p)
+        if p is None and not self.cmds.empty():
+            self._pending = [self.cmds.get(), 0, 0.0]
+            self._write(self._pending)
+
+    def _write(self, p):
+        self._dev.write((p[0] + "\n").encode())
+        p[1] += 1
+        p[2] = time.time()
+
     def handle(self, msg):
         if "ev" in msg:
+            if msg["ev"] == "ack":
+                if self._pending and str(msg.get("c", "")).upper() == self._pending[0].upper():
+                    self._pending = None
+                return
+            if msg["ev"] == "bad_cmd" and self._pending:
+                self._pending[2] = 0.0          # lenh vua gui bi hong -> gui lai ngay
             if msg["ev"] == "boot" and self.state:
                 # Mo /dev/ttyACM0 lam Arduino reset -> khoi phuc so xe va che do
                 self.cmds.put(f"CARS:{self.state.get('cars', 0)}")
                 self.cmds.put(f"MODE:{self.state.get('mode', 'AUTO')}")
             if msg["ev"] not in ("pong", "servo_off"):   # servo_off chi de debug tren Serial Monitor
-                db.add_event(msg["ev"], msg.get("cars", msg.get("ang", "")))
+                db.add_event(msg["ev"], msg.get("cars", msg.get("ang", msg.get("raw", ""))))
         else:
             self.state = msg
             db.add_reading(msg, self.link)
@@ -117,8 +146,7 @@ class DeviceLink(threading.Thread):
                 self._close()
                 continue
             try:
-                while not self.cmds.empty():
-                    self._dev.write((self.cmds.get() + "\n").encode())
+                self._pump_cmds()
                 raw = self._dev.readline()
                 if raw:
                     msg = parse(raw.decode(errors="ignore"))

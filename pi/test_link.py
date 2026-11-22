@@ -44,6 +44,38 @@ class LinkTest(unittest.TestCase):
         self.assertEqual(dev.snapshot()["link"], "serial")
 
 
+class LossyArduino(FakeArduino):
+    """Lam mat 2 lenh dau tien (nhu SoftwareSerial mat byte) -> link phai gui lai."""
+    def __init__(self, path="sim"):
+        super().__init__(path)
+        self.drop, self.got = 2, []
+
+    def write(self, data):
+        if self.drop:
+            self.drop -= 1
+            return
+        self.got.append(data.decode().strip())
+        super().write(data)
+
+
+class AckRetryTest(unittest.TestCase):
+    def setUp(self):
+        db.connect(":memory:")
+
+    def test_resend_until_ack(self):
+        devs = []
+        dev = DeviceLink(open_port=lambda p: devs.append(LossyArduino()) or devs[-1], ports=[("sim", "sim")])
+        dev.start()
+        time.sleep(1)
+        dev.send("CARS:2")
+        dev.send("MODE:MANUAL")
+        time.sleep(5)
+        s = dev.snapshot()
+        self.assertEqual(s["mode"], "MANUAL")          # so xe co the doi do sim cho xe den ngau nhien
+        self.assertEqual(devs[0].got, ["CARS:2", "MODE:MANUAL"])   # moi lenh toi dung 1 lan, dung thu tu
+        self.assertIsNone(dev._pending)
+
+
 class FakeBus:
     def __init__(self):
         self.writes = []
