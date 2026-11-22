@@ -35,6 +35,7 @@ const int  LIGHT_HYST = 50;   // > 650 moi tat lai, tranh nhap nhay quanh nguong
 // Tranh 0 do: nhieu SG90 cham chot co khi o 0 do -> ghi rè rè lien tuc. Dung 10..100 do.
 const int  GATE_OPEN_DEG = 100, GATE_CLOSED_DEG = 10;
 const unsigned long GATE_HOLD_MS = 3000;
+const unsigned long GATE_MAX_OPEN_MS = 10000;  // cam bien ket van dong sau toi da 10 s
 const unsigned long REPORT_MS = 1000;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);      // doi 0x3F neu i2c_scanner bao khac
@@ -51,6 +52,7 @@ int distIn = -1, distOut = -1, ldr = 0;
 bool carAtIn = false, carAtOut = false;
 byte cntIn = 0, cntOut = 0;   // dem so lan doc lien tiep muon doi trang thai
 unsigned long gateCloseAt = 0, lastReport = 0, lastLcd = 0;
+unsigned long gateOpenedAt = 0;
 unsigned long servoOffAt = 0;   // thoi diem ngat xung servo (0 = dang ngat)
 int servoAngle = -1;            // goc dang dat cho servo (log)
 const unsigned long SERVO_MOVE_MS = 700;
@@ -93,7 +95,10 @@ void setGate(bool open) {
     out(String("{\"ev\":\"servo\",\"ang\":") + servoAngle +
         ",\"us\":" + gate.readMicroseconds() + ",\"pin\":" + SERVO_PIN + "}");
   }
-  if (open) gateCloseAt = millis() + GATE_HOLD_MS;
+  if (open) {
+    if (changed) gateOpenedAt = millis();
+    gateCloseAt = millis() + GATE_HOLD_MS;
+  }
 }
 
 void servoIdle() {
@@ -194,7 +199,13 @@ void parkingLogic() {
 
   // Giu cong mo khi con xe dung truoc cong
   if (gateOpen && (carAtIn || carAtOut)) gateCloseAt = millis() + GATE_HOLD_MS;
-  if (gateOpen && autoMode && (long)(millis() - gateCloseAt) >= 0) setGate(false);
+  if (gateOpen && autoMode) {
+    if ((long)(millis() - gateCloseAt) >= 0) {
+      setGate(false); sendEvent("gate_auto_close");
+    } else if (millis() - gateOpenedAt >= GATE_MAX_OPEN_MS) {
+      setGate(false); sendEvent("gate_timeout_close");   // cam bien bao co xe qua lau -> van dong
+    }
+  }
 
   // Den bai theo LDR
   if (!lightManual) {
