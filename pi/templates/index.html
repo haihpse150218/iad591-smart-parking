@@ -175,7 +175,7 @@ async function poll() {
     $("fullMsg").textContent = free === 0 ? "Bãi đã đầy – barrier không mở cho xe vào." : "";
     $("gate").textContent = s.gate ? "🔓 MỞ" : "🔒 ĐÓNG";
     $("light").textContent = s.light ? "💡 BẬT" : "TẮT";
-    $("ldr").textContent = s.ldr === undefined ? "–" : s.ldr + (s.ldr < 300 ? " (tối)" : " (sáng)");
+    $("ldr").textContent = s.ldr === undefined ? "–" : s.ldr + (s.ldr < 600 ? " (tối)" : " (sáng)");
     $("d1").textContent = fmtCm(s.d1);
     $("d2").textContent = s.d2 === -1 ? "không lắp" : fmtCm(s.d2);
     const l = $("link");

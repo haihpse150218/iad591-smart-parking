@@ -110,7 +110,7 @@ Pi → Arduino (1 dòng text): `GATE:OPEN`, `GATE:CLOSE`, `LIGHT:ON`, `LIGHT:OFF
 Logic cục bộ trên Arduino:
 - **AUTO:** xe tới cổng vào (< 10 cm) mà còn chỗ thì mở barrier 3 s và tăng số xe. Bãi đầy thì giữ cổng đóng, kêu còi, bật LED đỏ. Xe ra thì giảm số xe và mở cổng.
 - **MANUAL:** xe tới thì báo `car_wait`. Người trực bấm **Mở cổng** trên web, lúc đó mới tính xe vào.
-- **Đèn bãi:** LDR < 300 thì bật; có thể ghi đè bằng nút Bật/Tắt trên web.
+- **Đèn bãi:** LDR < 600 thì bật, > 650 thì tắt (đo trong lab: sáng khoảng 850, che tay khoảng 400); có thể ghi đè bằng nút Bật/Tắt trên web.
 
 ## API Flask
 | Route | Mô tả |

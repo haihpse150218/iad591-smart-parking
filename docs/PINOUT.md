@@ -97,7 +97,7 @@ Nếu không lắp cảm biến cổng ra: sửa thành `#define USE_EXIT_SENSOR
                 │
 GND ────────────┘
 ```
-Sáng thì giá trị lớn, tối thì giá trị nhỏ. Ngưỡng tối là `DARK_LDR = 300`; chỉnh lại theo phòng lab.
+Sáng thì giá trị lớn, tối thì giá trị nhỏ. Ngưỡng tối là `DARK_LDR = 600` (đo trong lab: sáng khoảng 850, che tay khoảng 400). Đèn bật khi dưới 600, tắt khi trên 650.
 
 ### Ba LED (cùng một kiểu nối)
 

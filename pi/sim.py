@@ -9,7 +9,7 @@ import random
 import time
 
 CAPACITY = 4
-DARK_LDR = 300
+DARK_LDR = 600
 
 
 class FakeArduino:

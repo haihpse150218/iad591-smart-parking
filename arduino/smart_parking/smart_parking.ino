@@ -30,7 +30,8 @@ const int  CAR_CM = 10;       // < 10 cm = co xe
 const int  CLEAR_CM = 15;     // > 15 cm = xe da di (tre de chong nhieu)
 const byte ON_COUNT = 3;      // 3 lan doc lien tiep < CAR_CM moi tinh la CO xe
 const byte OFF_COUNT = 6;     // 6 lan doc lien tiep > CLEAR_CM (~0.5 s) moi tinh la xe DA DI
-const int  DARK_LDR = 300;    // LDR < 300 = troi toi -> bat den bai
+const int  DARK_LDR = 600;    // LDR < 600 = troi toi -> bat den bai (lab: sang ~850, che tay ~410)
+const int  LIGHT_HYST = 50;   // > 650 moi tat lai, tranh nhap nhay quanh nguong
 const int  GATE_OPEN_DEG = 90, GATE_CLOSED_DEG = 0;
 const unsigned long GATE_HOLD_MS = 3000;
 const unsigned long REPORT_MS = 1000;
@@ -170,7 +171,10 @@ void parkingLogic() {
   if (gateOpen && autoMode && (long)(millis() - gateCloseAt) >= 0) setGate(false);
 
   // Den bai theo LDR
-  if (!lightManual) lightOn = ldr < DARK_LDR;
+  if (!lightManual) {
+    if (ldr < DARK_LDR) lightOn = true;
+    else if (ldr > DARK_LDR + LIGHT_HYST) lightOn = false;
+  }
 
   digitalWrite(LED_LIGHT, lightOn);
   digitalWrite(LED_GREEN, cars < CAPACITY);
