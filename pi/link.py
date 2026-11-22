@@ -42,7 +42,8 @@ class DeviceLink(threading.Thread):
         self.open_port = open_port or self._open_serial
         self.state = {}             # trang thai moi nhat
         self.link = "none"          # bt / serial / sim / none
-        self.last_rx = 0.0
+        self.last_rx = 0.0          # moc tinh "im lang" (dat lai ca khi vua mo cong)
+        self.last_data = 0.0        # lan cuoi THAT SU nhan duoc JSON -> quyet dinh online
         self.cmds = queue.Queue()
         self._dev = None
         self._idx = 0               # cong dang dung / cong se thu dau tien
@@ -60,7 +61,7 @@ class DeviceLink(threading.Thread):
         db.add_command(cmd, source)
 
     def snapshot(self):
-        online = time.time() - self.last_rx < SILENCE_S
+        online = time.time() - self.last_data < SILENCE_S
         return {**self.state, "link": self.link if online else "offline", "online": online}
 
     # ---------- vong lap ----------
@@ -151,7 +152,7 @@ class DeviceLink(threading.Thread):
                 if raw:
                     msg = parse(raw.decode(errors="ignore"))
                     if msg is not None:
-                        self.last_rx = time.time()
+                        self.last_rx = self.last_data = time.time()
                         self.handle(msg)
                 if time.time() - self.last_rx > SILENCE_S:
                     print(f"[link] {self.link} silent > {SILENCE_S}s, reconnecting", flush=True)
