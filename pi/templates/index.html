@@ -124,6 +124,8 @@
     <div class="row"><span>Kênh</span>
       <button onclick="cmd('LINK:BT')">Bluetooth</button>
       <button onclick="cmd('LINK:SERIAL')">USB Serial</button></div>
+    <div class="row"><span>Dữ liệu</span>
+      <button class="danger" onclick="resetAll()">🗑️ Reset dữ liệu</button></div>
   </section>
 
   <section class="card span6">
@@ -150,7 +152,7 @@
 const $ = id => document.getElementById(id);
 const EV = { car_in: "🚗 Xe vào", car_out: "🚙 Xe ra", full: "⛔ Bãi đầy", car_wait: "⏳ Xe chờ (MANUAL)",
   gate_manual_open: "🔓 Mở cổng tay", gate_manual_close: "🔒 Đóng cổng tay", link_switch: "🔁 Đổi kênh",
-  boot: "⚡ Arduino khởi động", servo: "⚙️ Servo quay (góc)", gate_auto_close: "🔒 Tự đóng cổng", gate_timeout_close: "⏱️ Đóng do quá 10 s", cars_set: "✏️ Đặt số xe", bad_cmd: "❓ Lệnh lỗi khi truyền (gửi lại)", cmd_fail: "⚠️ Lệnh không tới Arduino" };
+  boot: "⚡ Arduino khởi động", servo: "⚙️ Servo quay (góc)", gate_auto_close: "🔒 Tự đóng cổng", gate_timeout_close: "⏱️ Đóng do quá 10 s", cars_set: "✏️ Đặt số xe", bad_cmd: "❓ Lệnh lỗi khi truyền (gửi lại)", cmd_fail: "⚠️ Lệnh không tới Arduino", reset: "🗑️ Reset dữ liệu", link_switch: "🔀 Đổi kênh" };
 let last = {}, range = 30;
 
 function toast(msg) { const t = $("toast"); t.textContent = msg; t.style.opacity = 1;
@@ -161,6 +163,12 @@ async function cmd(c) {
                                      body: JSON.stringify({ cmd: c }) });
   toast(r.ok ? "Đã gửi " + c : "Lỗi gửi " + c);
   setTimeout(poll, 300);
+}
+async function resetAll() {
+  if (!confirm("Xóa toàn bộ lịch sử, biểu đồ và đặt số xe về 0?")) return;
+  const r = await fetch("/api/reset", { method: "POST" });
+  toast(r.ok ? "Đã reset dữ liệu" : "Lỗi reset");
+  setTimeout(() => location.reload(), 600);
 }
 function setCars(d) { const n = Math.max(0, Math.min(last.cap || 4, (last.cars || 0) + d)); cmd("CARS:" + n); }
 

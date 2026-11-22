@@ -21,6 +21,8 @@ BAUD = 9600
 SILENCE_S = 5          # khong nhan gi trong 5 s -> coi nhu mat ket noi, thu cong khac
 ACK_TIMEOUT_S = 1.2    # gui lenh ma khong thay {"ev":"ack"} trong 1.2 s -> gui lai
 MAX_TRIES = 3          # SoftwareSerial (HC-05) mat byte khi Arduino dang gui -> can gui lai
+BOOT_BY_OPEN_S = 4     # Arduino boot trong 4 s sau khi Pi mo cong USB = do Pi lam reset -> khoi phuc
+BT_PROBE_S = 15        # dang chay USB: cu 15 s thu lai Bluetooth, co du lieu thi tu quay ve BT
 
 
 def parse(line):
@@ -48,6 +50,9 @@ class DeviceLink(threading.Thread):
         self._dev = None
         self._idx = 0               # cong dang dung / cong se thu dau tien
         self._switch = False
+        self._opened_at = 0.0       # thoi diem mo cong hien tai
+        self._pinned = None         # 'serial' neu nguoi dung chu dong chon USB -> khong tu ve BT
+        self._next_probe = 0.0
         self._pending = None        # [lenh, so lan da gui, thoi diem gui] - chi 1 lenh tren duong truyen
 
     @staticmethod
@@ -78,6 +83,8 @@ class DeviceLink(threading.Thread):
             old = self.link
             self._idx = i
             self._dev, self.link, self.last_rx = dev, name, time.time()
+            self._opened_at = self._next_probe = time.time()
+            self._next_probe += BT_PROBE_S
             print(f"[link] connected {name} {path}", flush=True)
             db.add_event("link_switch", f"{old} -> {name} ({path})")
             return True
@@ -95,6 +102,7 @@ class DeviceLink(threading.Thread):
         for i, (n, _) in enumerate(self.ports):
             if n == name:
                 self._idx = i
+                self._pinned = name if name != "bt" else None
                 self._switch = True
                 return True
         return False
@@ -119,6 +127,37 @@ class DeviceLink(threading.Thread):
         p[1] += 1
         p[2] = time.time()
 
+    def _probe_bt(self):
+        """Dang chay USB: thu mo Bluetooth, nhan duoc JSON thi chuyen han sang BT."""
+        self._next_probe = time.time() + BT_PROBE_S
+        bt = [(i, p) for i, (n, p) in enumerate(self.ports) if n == "bt"]
+        if not bt:
+            return
+        i, path = bt[0]
+        try:
+            dev = self.open_port(path)
+        except Exception:  # noqa: BLE001 - chua bind rfcomm / HC-05 tat
+            return
+        deadline = time.time() + 4
+        while time.time() < deadline:
+            try:
+                raw = dev.readline()
+            except Exception:  # noqa: BLE001
+                break
+            msg = parse(raw.decode(errors="ignore")) if raw else None
+            if msg is not None:
+                print("[link] bluetooth back, switching serial -> bt", flush=True)
+                self._close()
+                self._idx, self._dev, self.link = i, dev, "bt"
+                self._opened_at = self.last_rx = self.last_data = time.time()
+                db.add_event("link_switch", f"serial -> bt ({path}, tu dong)")
+                self.handle(msg)
+                return
+        try:
+            dev.close()
+        except Exception:  # noqa: BLE001
+            pass
+
     def handle(self, msg):
         if "ev" in msg:
             if msg["ev"] == "ack":
@@ -127,10 +166,16 @@ class DeviceLink(threading.Thread):
                 return
             if msg["ev"] == "bad_cmd" and self._pending:
                 self._pending[2] = 0.0          # lenh vua gui bi hong -> gui lai ngay
-            if msg["ev"] == "boot" and self.state:
-                # Mo /dev/ttyACM0 lam Arduino reset -> khoi phuc so xe va che do
-                self.cmds.put(f"CARS:{self.state.get('cars', 0)}")
-                self.cmds.put(f"MODE:{self.state.get('mode', 'AUTO')}")
+            if msg["ev"] == "boot":
+                if self.state and self.link == "serial" and time.time() - self._opened_at < BOOT_BY_OPEN_S:
+                    # Pi vua mo /dev/ttyACM0 lam Arduino reset -> khoi phuc so xe va che do
+                    self.cmds.put(f"CARS:{self.state.get('cars', 0)}")
+                    self.cmds.put(f"MODE:{self.state.get('mode', 'AUTO')}")
+                else:
+                    # Rut / cam lai nguon Arduino -> bat dau moi tu 0 xe, bo lenh cu dang cho
+                    self.state, self._pending = {}, None
+                    while not self.cmds.empty():
+                        self.cmds.get()
             if msg["ev"] not in ("pong", "servo_off"):   # servo_off chi de debug tren Serial Monitor
                 db.add_event(msg["ev"], msg.get("cars", msg.get("ang", msg.get("raw", ""))))
         else:
@@ -147,6 +192,8 @@ class DeviceLink(threading.Thread):
                 self._close()
                 continue
             try:
+                if self.link == "serial" and self._pinned is None and time.time() >= self._next_probe:
+                    self._probe_bt()
                 self._pump_cmds()
                 raw = self._dev.readline()
                 if raw:

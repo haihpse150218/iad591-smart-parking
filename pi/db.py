@@ -75,3 +75,10 @@ def stats_today():
 
 def all_readings():
     return _query("SELECT * FROM readings ORDER BY id")
+
+
+def reset():
+    """Xoa toan bo lich su (nut 'Reset du lieu' tren dashboard)."""
+    with _lock:
+        _conn.executescript("DELETE FROM readings; DELETE FROM events; DELETE FROM commands;")
+        _conn.commit()

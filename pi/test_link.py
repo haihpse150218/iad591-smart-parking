@@ -76,6 +76,42 @@ class AckRetryTest(unittest.TestCase):
         self.assertIsNone(dev._pending)
 
 
+class AutoBtAndFreshTest(unittest.TestCase):
+    def setUp(self):
+        db.connect(":memory:")
+
+    def test_returns_to_bt_when_it_comes_back(self):
+        import link
+        link.BT_PROBE_S = 1
+        bt_up = {"v": False}
+
+        def opener(path):
+            if path == "bt" and not bt_up["v"]:
+                raise OSError("Host is down")
+            return FakeArduino()
+        dev = DeviceLink(open_port=opener, ports=[("bt", "bt"), ("serial", "usb")])
+        dev.start()
+        time.sleep(1.5)
+        self.assertEqual(dev.snapshot()["link"], "serial")
+        bt_up["v"] = True
+        time.sleep(3)
+        self.assertEqual(dev.snapshot()["link"], "bt")
+        link.BT_PROBE_S = 15
+
+    def test_replug_starts_fresh_but_pi_reset_restores(self):
+        import link
+        dev = DeviceLink(open_port=FakeArduino, ports=[("serial", "usb")])
+        dev.link, dev.state = "serial", {"cars": 3, "mode": "MANUAL"}
+        dev._opened_at = time.time()                 # Pi vua mo cong -> reset do Pi
+        dev.handle({"ev": "boot"})
+        self.assertEqual([dev.cmds.get(), dev.cmds.get()], ["CARS:3", "MODE:MANUAL"])
+        dev._opened_at = time.time() - 60            # rut/cam lai nguon giua chung
+        dev.cmds.put("BUZZ")
+        dev.handle({"ev": "boot"})
+        self.assertTrue(dev.cmds.empty())
+        self.assertEqual(dev.state, {})
+
+
 class FakeBus:
     def __init__(self):
         self.writes = []

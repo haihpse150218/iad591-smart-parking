@@ -55,6 +55,15 @@ def cmd():
     return jsonify({"ok": True, "cmd": c})
 
 
+@app.post("/api/reset")
+def reset():
+    """Xoa lich su + dat so xe ve 0 (bat dau demo moi)."""
+    db.reset()
+    device.send("CARS:0", "web")
+    db.add_event("reset", "0")
+    return jsonify({"ok": True})
+
+
 @app.get("/export.csv")
 def export_csv():
     rows = db.all_readings()
