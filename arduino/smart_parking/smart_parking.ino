@@ -32,7 +32,8 @@ const byte ON_COUNT = 3;      // 3 lan doc lien tiep < CAR_CM moi tinh la CO xe
 const byte OFF_COUNT = 6;     // 6 lan doc lien tiep > CLEAR_CM (~0.5 s) moi tinh la xe DA DI
 const int  DARK_LDR = 600;    // LDR < 600 = troi toi -> bat den bai (lab: sang ~850, che tay ~410)
 const int  LIGHT_HYST = 50;   // > 650 moi tat lai, tranh nhap nhay quanh nguong
-const int  GATE_OPEN_DEG = 90, GATE_CLOSED_DEG = 0;
+// Tranh 0 do: nhieu SG90 cham chot co khi o 0 do -> ghi rè rè lien tuc. Dung 10..100 do.
+const int  GATE_OPEN_DEG = 100, GATE_CLOSED_DEG = 10;
 const unsigned long GATE_HOLD_MS = 3000;
 const unsigned long REPORT_MS = 1000;
 
