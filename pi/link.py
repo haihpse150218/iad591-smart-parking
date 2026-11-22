@@ -101,8 +101,8 @@ class DeviceLink(threading.Thread):
                 # Mo /dev/ttyACM0 lam Arduino reset -> khoi phuc so xe va che do
                 self.cmds.put(f"CARS:{self.state.get('cars', 0)}")
                 self.cmds.put(f"MODE:{self.state.get('mode', 'AUTO')}")
-            if msg["ev"] != "pong":
-                db.add_event(msg["ev"], msg.get("cars", ""))
+            if msg["ev"] not in ("pong", "servo_off"):   # servo_off chi de debug tren Serial Monitor
+                db.add_event(msg["ev"], msg.get("cars", msg.get("ang", "")))
         else:
             self.state = msg
             db.add_reading(msg, self.link)

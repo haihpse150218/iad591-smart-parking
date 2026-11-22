@@ -149,7 +149,7 @@
 const $ = id => document.getElementById(id);
 const EV = { car_in: "🚗 Xe vào", car_out: "🚙 Xe ra", full: "⛔ Bãi đầy", car_wait: "⏳ Xe chờ (MANUAL)",
   gate_manual_open: "🔓 Mở cổng tay", gate_manual_close: "🔒 Đóng cổng tay", link_switch: "🔁 Đổi kênh",
-  boot: "⚡ Arduino khởi động", cars_set: "✏️ Đặt số xe", bad_cmd: "❓ Lệnh sai" };
+  boot: "⚡ Arduino khởi động", servo: "⚙️ Servo quay (góc)", cars_set: "✏️ Đặt số xe", bad_cmd: "❓ Lệnh sai" };
 let last = {}, range = 30;
 
 function toast(msg) { const t = $("toast"); t.textContent = msg; t.style.opacity = 1;

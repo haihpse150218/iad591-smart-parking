@@ -52,6 +52,7 @@ bool carAtIn = false, carAtOut = false;
 byte cntIn = 0, cntOut = 0;   // dem so lan doc lien tiep muon doi trang thai
 unsigned long gateCloseAt = 0, lastReport = 0, lastLcd = 0;
 unsigned long servoOffAt = 0;   // thoi diem ngat xung servo (0 = dang ngat)
+int servoAngle = -1;            // goc dang dat cho servo (log)
 const unsigned long SERVO_MOVE_MS = 700;
 String bufUsb, bufBt;
 
@@ -84,9 +85,13 @@ void setGate(bool open) {
   gateOpen = open;
   if (changed) {
     gate.attach(SERVO_PIN);
-    gate.write(open ? GATE_OPEN_DEG : GATE_CLOSED_DEG);
+    servoAngle = open ? GATE_OPEN_DEG : GATE_CLOSED_DEG;
+    gate.write(servoAngle);
     servoOffAt = millis() + SERVO_MOVE_MS;
     if (servoOffAt == 0) servoOffAt = 1;
+    // LOG servo: goc + do rong xung thuc te (544..2400 us)
+    out(String("{\"ev\":\"servo\",\"ang\":") + servoAngle +
+        ",\"us\":" + gate.readMicroseconds() + ",\"pin\":" + SERVO_PIN + "}");
   }
   if (open) gateCloseAt = millis() + GATE_HOLD_MS;
 }
@@ -95,6 +100,7 @@ void servoIdle() {
   if (servoOffAt && (long)(millis() - servoOffAt) >= 0) {
     gate.detach();
     servoOffAt = 0;
+    out(String("{\"ev\":\"servo_off\",\"ang\":") + servoAngle + "}");
   }
 }
 
@@ -106,6 +112,8 @@ void report() {
   s += ",\"cars\":"; s += cars;
   s += ",\"cap\":"; s += CAPACITY;
   s += ",\"gate\":"; s += gateOpen ? 1 : 0;
+  s += ",\"ang\":"; s += servoAngle;
+  s += ",\"sp\":"; s += gate.attached() ? 1 : 0;
   s += ",\"light\":"; s += lightOn ? 1 : 0;
   s += ",\"mode\":\""; s += autoMode ? "AUTO" : "MANUAL";
   s += "\"}";
