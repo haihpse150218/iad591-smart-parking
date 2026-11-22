@@ -19,7 +19,7 @@ Bãi đỗ xe 4 chỗ: Arduino Uno đếm xe bằng cảm biến siêu âm, mở
 |---|---|---|
 | Arduino | 2 cảm biến + LCD1602 + 1 actuator | HC-SR04 ×2 + LDR, LCD1602 I2C, servo + LED + buzzer |
 | Giao tiếp | Bluetooth (backup Serial) | HC-05; mất BT 5 s → tự chuyển sang USB; nút chuyển kênh trên web |
-| Raspberry Pi | Flask dashboard + điều khiển (+ LED 4 số) | Flask + điều khiển; *lab không có LED 4 số* |
+| Raspberry Pi | Flask dashboard + điều khiển + LED 4 số | Flask + điều khiển + **LCD1602 gắn trên Pi** (thay LED 4 số vì lab không có): chỗ trống, kênh, xe vào/ra, giờ |
 | Lưu dữ liệu | SQLite | `readings`, `events`, `commands` (`pi/schema.sql`) |
 | Dashboard | hiện tại + lịch sử + chart | thẻ trạng thái, bảng sự kiện, Chart.js 5 phút / 30 phút / 3 giờ |
 | Điều khiển từ GUI | bắt buộc | cổng, đèn, AUTO/MANUAL, số xe, còi, kênh |
@@ -61,6 +61,23 @@ python3 app.py                         # mo http://<IP-Pi>:5000
 ```
 Chưa có mạch hoặc thử trên laptop: `python app.py --sim`.
 Test: `python3 -m unittest test_link`.
+
+### 2b. LCD1602 trên Pi (thay LED 4 số)
+| LCD1602 I2C | Raspberry Pi 3B+ |
+|---|---|
+| GND | chân 6 (GND) |
+| VCC | chân 2 (5V) |
+| SDA | chân 3 (GPIO2) |
+| SCL | chân 5 (GPIO3) |
+
+```bash
+sudo raspi-config        # Interface Options -> I2C -> Enable, rồi reboot
+sudo apt install -y i2c-tools python3-smbus
+i2cdetect -y 1           # thấy 27 hoặc 3f
+python3 app.py --lcd-addr 0x3f   # nếu địa chỉ là 3f; mặc định 0x27
+```
+LCD hiện `Trong 3/4    BT` và `V:12 R:9   14:05` (chỗ trống, kênh truyền, xe vào/ra hôm nay, giờ). Không cắm LCD thì app in `[lcd] khong dung LCD tren Pi` và vẫn chạy bình thường; tắt hẳn bằng `--no-lcd`.
+⚠️ Module I2C kéo SDA/SCL lên 5V qua điện trở 4.7k: thường chạy được với Pi, nhưng an toàn nhất là cấp VCC 3.3V (chân 1) nếu chữ vẫn đủ rõ.
 
 ### 3. Ghép Bluetooth HC-05 với Pi (một lần)
 ```bash
@@ -110,6 +127,7 @@ Xem DB: `sqlite3 pi/data/parking.db "select * from events order by id desc limit
 arduino/smart_parking/smart_parking.ino   Device layer
 pi/app.py          Flask (Application layer)
 pi/link.py         Gateway: doc BT/Serial, tu chuyen kenh, gui lenh
+pi/pi_lcd.py       LCD1602 I2C tren Pi (thay LED 4 so)
 pi/db.py           SQLite
 pi/schema.sql      Database schema
 pi/sim.py          Arduino gia lap

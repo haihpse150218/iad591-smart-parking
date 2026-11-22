@@ -44,5 +44,36 @@ class LinkTest(unittest.TestCase):
         self.assertEqual(dev.snapshot()["link"], "serial")
 
 
+class FakeBus:
+    def __init__(self):
+        self.writes = []
+
+    def write_byte(self, addr, b):
+        self.writes.append((addr, b))
+
+
+class PiLcdTest(unittest.TestCase):
+    def test_render(self):
+        from datetime import datetime
+        from pi_lcd import render
+        snap = {"online": True, "cars": 1, "cap": 4, "link": "bt"}
+        l1, l2 = render(snap, {"car_in": 12, "car_out": 9}, datetime(2026, 11, 22, 14, 5))
+        self.assertEqual((l1, l2), ("Trong 3/4    BT", "V:12 R:9   14:05"))
+        self.assertTrue(render({"online": True, "cars": 4, "cap": 4, "link": "serial"}, {})[0].startswith("BAI DAY"))
+        self.assertEqual(render({"online": False}, {})[0], "Mat ket noi")
+        for line in render(snap, {"car_in": 999, "car_out": 999}):
+            self.assertLessEqual(len(line), 16)
+
+    def test_driver_writes_to_bus(self):
+        from pi_lcd import PiLcd
+        bus = FakeBus()
+        lcd = PiLcd(0x27, bus=bus)
+        n = len(bus.writes)
+        lcd.line(0, "Trong 3/4")
+        # 1 lenh dat con tro + 16 ky tu, moi byte = 2 nibble x 2 lan ghi (E len/xuong)
+        self.assertEqual(len(bus.writes) - n, (1 + 16) * 4)
+        self.assertTrue(all(a == 0x27 and b & 0x08 for a, b in bus.writes))
+
+
 if __name__ == "__main__":
     unittest.main()

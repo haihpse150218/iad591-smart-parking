@@ -72,6 +72,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sim", action="store_true", help="gia lap Arduino")
     ap.add_argument("--port", type=int, default=5000)
+    ap.add_argument("--lcd-addr", type=lambda v: int(v, 0), default=0x27,
+                    help="dia chi I2C cua LCD1602 tren Pi (0x27 hoac 0x3f)")
+    ap.add_argument("--no-lcd", action="store_true", help="khong dung LCD tren Pi")
     args = ap.parse_args()
 
     db.connect()
@@ -81,6 +84,9 @@ def main():
     else:
         device = DeviceLink()
     device.start()
+    if not args.no_lcd:
+        import pi_lcd
+        pi_lcd.start(device, db.stats_today, args.lcd_addr)
     app.run(host="0.0.0.0", port=args.port, debug=False, threaded=True)
 
 
