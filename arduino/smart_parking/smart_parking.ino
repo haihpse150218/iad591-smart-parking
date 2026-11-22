@@ -4,7 +4,7 @@
  *
  * Cam bien : HC-SR04 #1 (cong vao), HC-SR04 #2 (cong ra, tuy chon), LDR (A0)
  * Dau ra   : Servo barrier, LCD1602 I2C, LED xanh/do, LED den bai, buzzer
- * Giao tiep: USB Serial (D0/D1) + HC-05 qua SoftwareSerial (D10/D11), 9600 baud
+ * Giao tiep: USB Serial (D0/D1) + HC-05 qua SoftwareSerial (RX D10 / TX A1), 9600 baud
  *            Gui cung 1 dong JSON ra CA HAI cong; nhan lenh tu CA HAI cong.
  *
  * Thu vien can cai: LiquidCrystal_I2C (Frank de Brabander). Servo, Wire, SoftwareSerial co san.
@@ -18,10 +18,10 @@
 const byte TRIG_IN = 7,  ECHO_IN = 6;    // HC-SR04 cong vao
 const byte TRIG_OUT = 5, ECHO_OUT = 4;   // HC-SR04 cong ra (USE_EXIT_SENSOR)
 const byte LDR_PIN = A0;                 // LDR len 5V, 10k xuong GND -> sang = so lon
-const byte SERVO_PIN = 13;               // servo o D13 (D9 doi sang 13); den L tren board nhay mo khi servo nhan xung
+const byte SERVO_PIN = 11;               // servo o D11 (lab: D9/D13 cam day khong an, D11 chay)
 const byte LED_GREEN = 2, LED_RED = 3, LED_LIGHT = 12;
 const byte BUZZER = 8;
-const byte BT_RX = 10, BT_TX = 11;       // D10 <- TXD HC-05 ; D11 -> chia ap 1k/2k -> RXD HC-05
+const byte BT_RX = 10, BT_TX = A1;       // D10 <- TXD HC-05 ; A1 -> chia ap 1k/2k -> RXD HC-05
 
 // ------------------- CAU HINH -------------------
 #define USE_EXIT_SENSOR 1     // 0 neu khong lap HC-SR04 thu 2

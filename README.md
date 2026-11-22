@@ -34,7 +34,7 @@ Bãi đỗ xe 4 chỗ: Arduino Uno đếm xe bằng cảm biến siêu âm, mở
 | HC-SR04 cổng **vào** | VCC / GND / Trig / Echo | 5V / GND / **D7** / **D6** |
 | HC-SR04 cổng **ra** | VCC / GND / Trig / Echo | 5V / GND / **D5** / **D4** |
 | LDR | một đầu → 5V, đầu kia → **A0** và điện trở **10k** xuống GND | A0 |
-| Servo (barrier) | nâu GND · đỏ 5V · cam tín hiệu | **D13** (đèn L trên board nháy mờ khi servo nhận xung, bình thường) |
+| Servo (barrier) | nâu GND · đỏ 5V · cam tín hiệu | **D11** |
 | LCD1602 I2C | SDA / SCL / VCC / GND | **A4** / **A5** / 5V / GND |
 | LED xanh (còn chỗ) | anode qua 220Ω | **D2** |
 | LED đỏ (hết chỗ) | anode qua 220Ω | **D3** |
@@ -42,7 +42,7 @@ Bãi đỗ xe 4 chỗ: Arduino Uno đếm xe bằng cảm biến siêu âm, mở
 | Buzzer | + / − | **D8** / GND |
 | HC-05 | VCC / GND | 5V / GND |
 | HC-05 TXD | → | **D10** (SoftwareSerial RX) |
-| HC-05 RXD | ← **chia áp**: D11 → 1kΩ → RXD → 2kΩ → GND | **D11** |
+| HC-05 RXD | ← **chia áp**: A1 → 1kΩ → RXD → 2kΩ → GND | **A1** (dùng như chân digital) |
 
 ⚠️ HC-05 nhận logic 3.3V nên **bắt buộc chia áp** chân RXD. Servo kéo dòng lớn: nếu Arduino reset khi servo quay thì cấp 5V riêng cho servo và **nối chung GND**.
 Không lắp HC-SR04 thứ hai thì đặt `#define USE_EXIT_SENSOR 0`; xe ra khi đó trừ bằng nút **−1** trên web.
@@ -51,7 +51,7 @@ Không lắp HC-SR04 thứ hai thì đặt `#define USE_EXIT_SENSOR 0`; xe ra kh
 
 ### 1. Arduino
 1. Arduino IDE → Library Manager → cài **LiquidCrystal I2C** (Frank de Brabander).
-2. Mở `arduino/smart_parking/smart_parking.ino`, board **Arduino Uno**, upload (HC-05 nằm ở D10/D11 nên không cần rút khi nạp code).
+2. Mở `arduino/smart_parking/smart_parking.ino`, board **Arduino Uno**, upload (HC-05 nằm ở D10/A1 nên không cần rút khi nạp code).
 3. Serial Monitor 9600 → thấy mỗi giây một dòng `{"d1":..,"ldr":..,"cars":0,...}`.
 4. LCD trắng/ô vuông → vặn biến trở sau LCD; không hiện chữ → đổi `0x27` thành `0x3F`.
 

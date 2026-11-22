@@ -18,18 +18,18 @@ Khớp với hằng số trong `arduino/smart_parking/smart_parking.ino` và `pi
 | **D6** | HC-SR04 cổng **vào** | Echo | |
 | **D7** | HC-SR04 cổng **vào** | Trig | |
 | **D8** | Buzzer | + | |
-| D9 | — | — | trống (servo đã chuyển sang D13) |
+| D9 | — | — | trống (lab: cắm servo vào đây không ăn chân) |
 | **D10** | HC-05 | **TXD** | cắm thẳng (SoftwareSerial RX) |
-| **D11** | HC-05 | **RXD**, đi **qua mạch chia áp** | bắt buộc chia áp (SoftwareSerial TX) |
+| **D11** | Servo | dây **cam** (tín hiệu) | barrier |
 | **D12** | LED đèn bãi | chân dài (+), qua điện trở 220Ω | bật khi trời tối |
-| **D13** | Servo | dây **cam** (tín hiệu) | barrier; LED "L" trên board nháy mờ khi servo nhận xung |
+| D13 | — | — | trống (LED "L" có sẵn trên board) |
 
 ## 2. Arduino Uno: hàng ANALOG IN
 
 | Chân | Nối vào | Chân của linh kiện | Ghi chú |
 |---|---|---|---|
 | **A0** | LDR | điểm giữa của LDR và điện trở 10kΩ | đo ánh sáng, 0–1023 |
-| A1 | — | — | trống |
+| **A1** | HC-05 | **RXD**, đi **qua mạch chia áp** | dùng như chân digital (SoftwareSerial TX); bắt buộc chia áp |
 | A2 | — | — | trống |
 | A3 | — | — | trống |
 | **A4** | LCD1602 #1 | **SDA** | I2C, địa chỉ 0x27 (hoặc 0x3F) |
@@ -49,15 +49,15 @@ Breadboard dài thường có hàng nguồn **đứt ở giữa**. Nối thêm h
 
 ```
               ┌─ DIGITAL ─────────────────────────────────────────────────────┐
-              │ D13   D12  D11   D10   D9  D8   D7   D6   D5   D4   D3   D2  D1 D0
-              │ servo đèn  HC05  HC05  ·   còi  Trig Echo Trig Echo đỏ   xanh ✗  ✗
-              │       bãi  RXD*  TXD            ─ vào ─   ─ ra ─
+              │ D13 D12  D11   D10   D9  D8   D7   D6   D5   D4   D3   D2  D1 D0
+              │  ·  đèn  servo HC05  ·   còi  Trig Echo Trig Echo đỏ   xanh ✗  ✗
+              │     bãi        TXD              ─ vào ─   ─ ra ─
      USB ▓▓   │
               │  POWER                     ANALOG IN
               │  3V3  5V   GND GND VIN    A0   A1 A2 A3  A4   A5
-              │   ·   (+)  (−) (−)  ·     LDR   ·  ·  ·  SDA  SCL
+              │   ·   (+)  (−) (−)  ·     LDR HC05* ·  ·  SDA  SCL
               └───────────────────────────────────────── LCD #1 ─────────────┘
-   * D11 → mạch chia áp → RXD của HC-05        ✗ = để trống
+   * A1 → mạch chia áp → RXD của HC-05         ✗ = để trống
 ```
 
 ---
@@ -124,7 +124,7 @@ Dx ── 220Ω (đỏ-đỏ-nâu) ── chân DÀI LED (+)   chân NGẮN LED 
 |---|---|
 | Nâu | GND |
 | Đỏ | 5V |
-| Cam | **D13** |
+| Cam | **D11** |
 
 Nếu Arduino tự reset mỗi khi servo quay: cấp 5V cho servo từ nguồn riêng và **nối chung GND** với Arduino.
 
@@ -135,14 +135,14 @@ Nếu Arduino tự reset mỗi khi servo quay: cấp 5V cho servo từ nguồn r
 | VCC | 5V |
 | GND | GND |
 | TXD | **D10** (cắm thẳng) |
-| RXD | **D11**, đi qua mạch chia áp bên dưới |
+| RXD | **A1**, đi qua mạch chia áp bên dưới |
 | STATE, EN | không dùng |
 
 RXD của HC-05 chỉ chịu được 3.3V. Chọn một trong hai cách chia áp:
 
 ```
 Cách A: 3 điện trở 1kΩ (khoảng 3.3V)    Cách B: 220Ω + 330Ω (khoảng 3.0V)
-D11 ── 1k ──┬── RXD                     D11 ── 220Ω ──┬── RXD
+A1 ── 1k ──┬── RXD                      A1 ── 220Ω ──┬── RXD
             1k                                       330Ω
             1k                                        │
             │                                        GND
@@ -177,8 +177,8 @@ Bật I2C: `sudo raspi-config` → Interface Options → I2C → Enable. Kiểm 
 
 - [ ] Mọi GND đều về hàng −; hàng − đã nối GND Arduino
 - [ ] Không có dây nào cắm vào D0 hoặc D1
-- [ ] RXD của HC-05 đi **qua mạch chia áp**, không nối thẳng D11
+- [ ] RXD của HC-05 đi **qua mạch chia áp**, không nối thẳng A1
 - [ ] LED: chân dài cắm phía điện trở, chân ngắn cắm GND
 - [ ] LDR có điện trở 10k xuống GND (thiếu điện trở này thì A0 nhảy số lung tung)
-- [ ] Servo: nâu GND, đỏ 5V, cam D13
+- [ ] Servo: nâu GND, đỏ 5V, cam D11
 - [ ] Không có chỗ nào chập giữa 5V và GND (đo thử bằng đồng hồ nếu có)
