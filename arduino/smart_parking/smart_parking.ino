@@ -52,7 +52,8 @@ bool lightManual = false;     // MANUAL: den theo lenh
 int distIn = -1, distOut = -1, ldr = 0;
 bool carAtIn = false, carAtOut = false;
 byte cntIn = 0, cntOut = 0;   // dem so lan doc lien tiep muon doi trang thai
-unsigned long gateCloseAt = 0, lastReport = 0, lastLcd = 0;
+unsigned long gateCloseAt = 0, lastReport = 0, lastLcd = 0, lastLcdInit = 0;
+bool lcdReinit = false;          // true -> khoi tao lai LCD o vong loop ke tiep
 unsigned long gateOpenedAt = 0;
 unsigned long servoOffAt = 0;   // thoi diem ngat xung servo (0 = dang ngat)
 int servoAngle = -1;            // goc dang dat cho servo (log)
@@ -142,6 +143,7 @@ void servoIdle() {
   if ((long)(millis() - servoOffAt) >= 0) {
     gate.detach();
     servoOffAt = 0;
+    lcdReinit = true;
     // vmin < 4500 mV: nguon yeu khi servo quay; ok = 1 neu du dien
     out(String("{\"ev\":\"servo_off\",\"ang\":") + servoAngle +
         ",\"pw\":" + pulseUs + ",\"vmin\":" + vminMove +
@@ -301,6 +303,12 @@ void loop() {
   parkingLogic();
   servoIdle();
 
+  // LCD I2C co the mat dong bo (hien chu cu / ky tu rac) khi nguon tut luc servo quay
+  // -> khoi tao lai sau moi lan servo dung va dinh ky 15 s, roi ve lai noi dung hien tai.
+  if (lcdReinit || millis() - lastLcdInit >= 15000UL) {
+    lcdReinit = false; lastLcdInit = millis();
+    lcd.init(); lcd.backlight(); drawLcd();
+  }
   if (millis() - lastLcd >= 300) { lastLcd = millis(); drawLcd(); }
   if (millis() - lastReport >= REPORT_MS) { lastReport = millis(); report(); }
   delay(40);
