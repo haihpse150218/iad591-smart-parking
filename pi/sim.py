@@ -60,7 +60,7 @@ class FakeArduino:
     def _gate(self, v):
         self.gate = v
         if v:
-            self.gate_close_at = time.time() + 3
+            self.gate_close_at = time.time() + 0.5
 
     def _tick(self):
         now = time.time()

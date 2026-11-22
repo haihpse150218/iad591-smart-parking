@@ -32,9 +32,10 @@ const byte ON_COUNT = 3;      // 3 lan doc lien tiep < CAR_CM moi tinh la CO xe
 const byte OFF_COUNT = 6;     // 6 lan doc lien tiep > CLEAR_CM (~0.5 s) moi tinh la xe DA DI
 const int  DARK_LDR = 600;    // LDR < 600 = troi toi -> bat den bai (lab: sang ~850, che tay ~410)
 const int  LIGHT_HYST = 50;   // > 650 moi tat lai, tranh nhap nhay quanh nguong
-// Tranh 0 do: nhieu SG90 cham chot co khi o 0 do -> ghi rè rè lien tuc. Dung 10..100 do.
-const int  GATE_OPEN_DEG = 100, GATE_CLOSED_DEG = 10;
-const unsigned long GATE_HOLD_MS = 3000;
+// Xe vao/ra: quay 90 do, giu 0.5 s, quay ve 0 do. Servo chi duoc cap xung 0.7 s moi lan quay
+// (detach) nen o 0 do neu cham chot co cung chi rè rè thoang qua.
+const int  GATE_OPEN_DEG = 90, GATE_CLOSED_DEG = 0;
+const unsigned long GATE_HOLD_MS = 500;       // giu barrier mo 0.5 s roi dong, khong cho xe di qua
 const unsigned long GATE_MAX_OPEN_MS = 10000;  // cam bien ket van dong sau toi da 10 s
 const unsigned long REPORT_MS = 1000;
 
@@ -224,8 +225,6 @@ void parkingLogic() {
   carAtOut = nowOut;
 #endif
 
-  // Giu cong mo khi con xe dung truoc cong
-  if (gateOpen && (carAtIn || carAtOut)) gateCloseAt = millis() + GATE_HOLD_MS;
   if (gateOpen && autoMode) {
     if ((long)(millis() - gateCloseAt) >= 0) {
       setGate(false); sendEvent("gate_auto_close");

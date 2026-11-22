@@ -108,7 +108,7 @@ Sự kiện: `boot`, `car_in`, `car_out`, `car_wait`, `full`, `gate_manual_open`
 Pi → Arduino (1 dòng text): `GATE:OPEN`, `GATE:CLOSE`, `LIGHT:ON`, `LIGHT:OFF`, `LIGHT:AUTO`, `MODE:AUTO`, `MODE:MANUAL`, `CARS:<n>`, `BUZZ`, `PING`.
 
 Logic cục bộ trên Arduino:
-- **AUTO:** xe tới cổng vào (< 10 cm) mà còn chỗ thì mở barrier 3 s và tăng số xe. Bãi đầy thì giữ cổng đóng, kêu còi, bật LED đỏ. Xe ra thì giảm số xe và mở cổng.
+- **AUTO:** xe tới cổng vào (< 10 cm) mà còn chỗ thì barrier quay lên 90°, giữ 0,5 s rồi về 0°, và tăng số xe. Bãi đầy thì giữ cổng đóng, kêu còi, bật LED đỏ. Xe ra thì giảm số xe và mở cổng.
 - **MANUAL:** xe tới thì báo `car_wait`. Người trực bấm **Mở cổng** trên web, lúc đó mới tính xe vào.
 - **Đèn bãi:** LDR < 600 thì bật, > 650 thì tắt (đo trong lab: sáng khoảng 850, che tay khoảng 400); có thể ghi đè bằng nút Bật/Tắt trên web.
 
